@@ -4,7 +4,6 @@ import React from 'react'
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import * as yup from 'yup'
-import { javascript } from 'webpack'
 
 const e = { // This is a dictionary of validation error messages.
   // username
@@ -21,6 +20,21 @@ const e = { // This is a dictionary of validation error messages.
   agreementRequired: 'agreement is required',
   agreementOptions: 'agreement must be accepted',
 }
+
+const userSchema = yup.object().shape({
+  username: yup.string().trim()
+    .required(e.usernameRequired)
+    .min(3, e.usernameMin).max(20, e.usernameMax),
+  favLanguage: yup.string()
+    .required(e.favLanguageRequired).trim()
+    .oneOf(['javascript', 'rust'], e.favLanguageOptions),
+  favFood: yup.string()
+    .required(e.favFoodRequired).trim()
+    .oneOf(['broccoli', 'spaghetti', 'pizza'], e.favFoodOptions),
+  agreement: yup.boolean()
+    .required(e.agreementRequired)
+    .oneOf([true], e.agreementOptions),
+})
 
 
 // ✨ TASK: BUILD YOUR FORM SCHEMA HERE
@@ -42,10 +56,13 @@ export default function App() {
 
   const [values, setValues] = useState(getInitialValues())
   const [error, setError] = useState(getInitialErrors())
-  const [enable, setEnable] = useState()
   const [serverSuccess, setServerSuccess] = useState()
   const [serverFailure, setServerFailure] = useState()
   const [formEnabled, setFormEnabled] = useState(false)
+
+  useEffect(() => {
+    userSchema.isValid(values).then(setFormEnabled)
+  }, [values])
   // ✨ TASK: BUILD YOUR STATES HERE
   // You will need states to track (1) the form, (2) the validation errors,
   // (3) whether submit is disabled, (4) the success message from the server,
@@ -59,6 +76,9 @@ export default function App() {
     let { type, name, value, checked } = evt.target
     value = type == 'checkbox' ? checked : value
     setValues({ ...values, [name]: value })
+    yup.reach(userSchema, name).validate(value)
+      .then(() => setError({...error, [name]: ''}))
+      .catch((err) => setError({...error, [name]: err.errors[0]}))
   }
 
   const onSubmit = evt => {
