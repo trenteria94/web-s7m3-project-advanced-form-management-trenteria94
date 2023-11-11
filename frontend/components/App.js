@@ -1,6 +1,10 @@
 // ❗ The ✨ TASKS inside this component are NOT IN ORDER.
 // ❗ Check the README for the appropriate sequence to follow.
 import React from 'react'
+import { useState, useEffect } from 'react'
+import axios from 'axios'
+import * as yup from 'yup'
+import { javascript } from 'webpack'
 
 const e = { // This is a dictionary of validation error messages.
   // username
@@ -18,10 +22,30 @@ const e = { // This is a dictionary of validation error messages.
   agreementOptions: 'agreement must be accepted',
 }
 
+
 // ✨ TASK: BUILD YOUR FORM SCHEMA HERE
 // The schema should use the error messages contained in the object above.
+const getInitialValues = () => ({
+  username: '',
+  favLanguage: '',
+  favFood: '',
+  agreement: false
+})
 
+const getInitialErrors = () => ({
+  username: '',
+  favLanguage: '',
+  favFood: '',
+  agreement: ''
+})
 export default function App() {
+
+  const [values, setValues] = useState(getInitialValues())
+  const [error, setError] = useState(getInitialErrors())
+  const [enable, setEnable] = useState()
+  const [serverSuccess, setServerSuccess] = useState()
+  const [serverFailure, setServerFailure] = useState()
+  const [formEnabled, setFormEnabled] = useState(false)
   // ✨ TASK: BUILD YOUR STATES HERE
   // You will need states to track (1) the form, (2) the validation errors,
   // (3) whether submit is disabled, (4) the success message from the server,
@@ -32,71 +56,78 @@ export default function App() {
   // and update the state that tracks whether the form is submittable.
 
   const onChange = evt => {
-    // ✨ TASK: IMPLEMENT YOUR INPUT CHANGE HANDLER
-    // The logic is a bit different for the checkbox, but you can check
-    // whether the type of event target is "checkbox" and act accordingly.
-    // At every change, you should validate the updated value and send the validation
-    // error to the state where we track frontend validation errors.
+    let { type, name, value, checked } = evt.target
+    value = type == 'checkbox' ? checked : value
+    setValues({ ...values, [name]: value })
   }
 
   const onSubmit = evt => {
-    // ✨ TASK: IMPLEMENT YOUR SUBMIT HANDLER
-    // Lots to do here! Prevent default behavior, disable the form to avoid
-    // double submits, and POST the form data to the endpoint. On success, reset
-    // the form. You must put the success and failure messages from the server
-    // in the states you have reserved for them, and the form
-    // should be re-enabled.
+    evt.preventDefault()
+    axios.
+      post('https://webapis.bloomtechdev.com/registration', values)
+      .then(res => {
+
+        setValues(getInitialValues())
+        setServerSuccess(res.data.message)
+        setServerFailure()
+      })
+      .catch(err => {
+        setServerFailure(err.response.data.message)
+        setServerSuccess()
+      })
+
+
   }
 
   return (
     <div> {/* TASK: COMPLETE THE JSX */}
       <h2>Create an Account</h2>
-      <form>
-        <h4 className="success">Success! Welcome, new user!</h4>
-        <h4 className="error">Sorry! Username is taken</h4>
+      <form onSubmit={onSubmit}>
+        {serverSuccess && <h4 className="success">{serverSuccess}</h4>}
+        {serverFailure && <h4 className="error">{serverFailure}</h4>}
 
         <div className="inputGroup">
           <label htmlFor="username">Username:</label>
-          <input id="username" name="username" type="text" placeholder="Type Username" />
-          <div className="validation">username is required</div>
+          <input value={values.username} onChange={onChange} id="username" name="username" type="text" placeholder="Type Username" />
+          {error.username && <div className="validation">{error.username}</div>}
         </div>
 
         <div className="inputGroup">
           <fieldset>
             <legend>Favorite Language:</legend>
             <label>
-              <input type="radio" name="favLanguage" value="javascript" />
+              <input checked={values.favLanguage == 'javascript'} onChange={onChange} type="radio" name="favLanguage" value="javascript" />
               JavaScript
             </label>
             <label>
-              <input type="radio" name="favLanguage" value="rust" />
+              <input checked={values.favLanguage == 'rust'} onChange={onChange} type="radio" name="favLanguage" value="rust" />
               Rust
             </label>
           </fieldset>
-          <div className="validation">favLanguage is required</div>
+          {error.favLanguage && <div className="validation">{error.favLanguage}</div>}
         </div>
 
         <div className="inputGroup">
           <label htmlFor="favFood">Favorite Food:</label>
-          <select id="favFood" name="favFood">
+          <select value={values.favFood} onChange={onChange} id="favFood" name="favFood">
             <option value="">-- Select Favorite Food --</option>
             <option value="pizza">Pizza</option>
             <option value="spaghetti">Spaghetti</option>
             <option value="broccoli">Broccoli</option>
           </select>
-          <div className="validation">favFood is required</div>
+          {error.favFood && <div className="validation">{error.favFood}</div>}
         </div>
 
         <div className="inputGroup">
           <label>
-            <input id="agreement" type="checkbox" name="agreement" />
+            <input checked={values.agreement} onChange={onChange} id="agreement" type="checkbox" name="agreement" />
             Agree to our terms
           </label>
-          <div className="validation">agreement is required</div>
+          {error.agreement && <div className="validation">{error.agreement}</div>}
         </div>
 
         <div>
-          <input type="submit" disabled={false} />
+          <input type="submit" disabled={!formEnabled} />
         </div>
       </form>
     </div>
